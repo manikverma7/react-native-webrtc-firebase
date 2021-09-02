@@ -1,20 +1,31 @@
-import React, { useState, useEffect } from 'react';
-import { Text, StyleSheet, Button, View } from 'react-native';
+import React, { useState, useEffect } from "react";
+import {
+  Text,
+  StyleSheet,
+  Button,
+  View,
+  ActivityIndicator,
+} from "react-native";
 
-import { RTCPeerConnection, RTCView, mediaDevices, RTCIceCandidate, RTCSessionDescription } from 'react-native-webrtc';
-import { db } from '../utilities/firebase';
+import {
+  RTCPeerConnection,
+  RTCView,
+  mediaDevices,
+  RTCIceCandidate,
+  RTCSessionDescription,
+} from "react-native-webrtc";
+import { db } from "../utilities/firebase";
 
 const configuration = {
   iceServers: [
     {
-      urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'],
+      urls: ["stun:stun1.l.google.com:19302", "stun:stun2.l.google.com:19302"],
     },
   ],
   iceCandidatePoolSize: 10,
 };
 
 export default function CallScreen({ setScreen, screens, roomId }) {
-
   function onBackPress() {
     if (cachedLocalPC) {
       cachedLocalPC.removeStream(localStream);
@@ -30,11 +41,11 @@ export default function CallScreen({ setScreen, screens, roomId }) {
   const [localStream, setLocalStream] = useState();
   const [remoteStream, setRemoteStream] = useState();
   const [cachedLocalPC, setCachedLocalPC] = useState();
-
   const [isMuted, setIsMuted] = useState(false);
+  const [connecting, setConnecting] = useState(false);
 
   useEffect(() => {
-    // startLocalStream();
+    startLocalStream();
   }, []);
 
   const startLocalStream = async () => {
@@ -42,14 +53,19 @@ export default function CallScreen({ setScreen, screens, roomId }) {
     const isFront = true;
     const devices = await mediaDevices.enumerateDevices();
 
-    const facing = isFront ? 'front' : 'environment';
-    const videoSourceId = devices.find(device => device.kind === 'videoinput' && device.facing === facing);
-    const facingMode = isFront ? 'user' : 'environment';
+    const facing = isFront ? "front" : "environment";
+    const videoSourceId = devices.find(
+      (device) => device.kind === "videoinput" && device.facing === facing
+    );
+    const facingMode = isFront ? "user" : "environment";
     const constraints = {
       audio: true,
       video: {
         mandatory: {
-          minWidth: 500, // Provide your own width, height and frame rate here
+          minWidth: 500, 
+          
+          // Provide your own width, height and frame rate here
+
           minHeight: 300,
           minFrameRate: 30,
         },
@@ -61,23 +77,29 @@ export default function CallScreen({ setScreen, screens, roomId }) {
     setLocalStream(newStream);
   };
 
-  const startCall = async id => {
+  const startCall = async (id) => {
+    setConnecting(true);
     const localPC = new RTCPeerConnection(configuration);
     localPC.addStream(localStream);
 
-    const roomRef = await db.collection('rooms').doc(id);
-    const callerCandidatesCollection = roomRef.collection('callerCandidates');
-    localPC.onicecandidate = e => {
+    const roomRef = await db.collection("rooms").doc(id);
+    const callerCandidatesCollection = roomRef.collection("callerCandidates");
+
+    localPC.onicecandidate = (e) => {
+      setConnecting(false);
+
       if (!e.candidate) {
-        console.log('Got final candidate!');
+        console.log("Got final candidate!");
+
         return;
       }
       callerCandidatesCollection.add(e.candidate.toJSON());
     };
 
-    localPC.onaddstream = e => {
+    localPC.onaddstream = (e) => {
       if (e.stream && remoteStream !== e.stream) {
-        console.log('RemotePC received the stream call', e.stream);
+        console.log("RemotePC received the stream call", e.stream);
+
         setRemoteStream(e.stream);
       }
     };
@@ -88,7 +110,7 @@ export default function CallScreen({ setScreen, screens, roomId }) {
     const roomWithOffer = { offer };
     await roomRef.set(roomWithOffer);
 
-    roomRef.onSnapshot(async snapshot => {
+    roomRef.onSnapshot(async (snapshot) => {
       const data = snapshot.data();
       if (!localPC.currentRemoteDescription && data.answer) {
         const rtcSessionDescription = new RTCSessionDescription(data.answer);
@@ -96,9 +118,9 @@ export default function CallScreen({ setScreen, screens, roomId }) {
       }
     });
 
-    roomRef.collection('calleeCandidates').onSnapshot(snapshot => {
-      snapshot.docChanges().forEach(async change => {
-        if (change.type === 'added') {
+    roomRef.collection("calleeCandidates").onSnapshot((snapshot) => {
+      snapshot.docChanges().forEach(async (change) => {
+        if (change.type === "added") {
           let data = change.doc.data();
           await localPC.addIceCandidate(new RTCIceCandidate(data));
         }
@@ -109,7 +131,7 @@ export default function CallScreen({ setScreen, screens, roomId }) {
   };
 
   const switchCamera = () => {
-    localStream.getVideoTracks().forEach(track => track._switchCamera());
+    localStream.getVideoTracks().forEach((track) => track._switchCamera());
   };
 
   // Mutes the local's outgoing audio
@@ -117,78 +139,100 @@ export default function CallScreen({ setScreen, screens, roomId }) {
     if (!remoteStream) {
       return;
     }
-    localStream.getAudioTracks().forEach(track => {
+    localStream.getAudioTracks().forEach((track) => {
       // console.log(track.enabled ? 'muting' : 'unmuting', ' local track', track);
       track.enabled = !track.enabled;
       setIsMuted(!track.enabled);
     });
   };
 
-
   return (
     <>
-      <Text style={styles.heading} >Call Screen</Text>
-      <Text style={styles.heading} >Room : {roomId}</Text>
+      <Button title="Stop Stream" onPress={onBackPress} />
 
-      <View style={styles.callButtons} >
-        <View styles={styles.buttonContainer} >
-          <Button title="Click to stop call" onPress={onBackPress} />
-        </View>
-        <View styles={styles.buttonContainer} >
-          {!localStream && <Button title='Click to start stream' onPress={startLocalStream} />}
-          {localStream && <Button title='Click to start call' onPress={() => startCall(roomId)} disabled={!!remoteStream} />}
+      <Text style={styles.heading}>Call Screen</Text>
+      <Text style={styles.heading2}>Room : {roomId}</Text>
+
+      <View style={styles.callButtons}>
+        <View styles={styles.buttonContainer}>
+          {/* {!localStream && (
+            <Button title="Start stream" onPress={startLocalStream} />
+          )} */}
+          {localStream && (
+            <>
+              <Button title="Go Live" onPress={() => startCall(roomId)} />
+              <>
+                {connecting ? (
+                  <View style={{ flexDirection: "row" }}>
+                    <Text>Connecting...</Text>
+                    <ActivityIndicator />
+                  </View>
+                ) : null}
+              </>
+            </>
+          )}
         </View>
       </View>
 
       {localStream && (
         <View style={styles.toggleButtons}>
-          <Button title='Switch camera' onPress={switchCamera} />
-          <Button title={`${isMuted ? 'Unmute' : 'Mute'} stream`} onPress={toggleMute} disabled={!remoteStream} />
+          <Button title="Switch camera" onPress={switchCamera} />
+          <Button
+            title={`${isMuted ? "Unmute" : "Mute"} stream`}
+            onPress={toggleMute}
+            disabled={!remoteStream}
+          />
         </View>
       )}
 
-      <View style={{ display: 'flex', flex: 1, padding: 10 }} >
+      <View style={{ display: "flex", flex: 1 }}>
         <View style={styles.rtcview}>
-          {localStream && <RTCView style={styles.rtc} streamURL={localStream && localStream.toURL()} />}
-        </View>
-        <View style={styles.rtcview}>
-          {remoteStream && <RTCView style={styles.rtc} streamURL={remoteStream && remoteStream.toURL()} />}
+          {localStream && (
+            <RTCView
+              style={styles.rtc}
+              streamURL={localStream && localStream.toURL()}
+            />
+          )}
         </View>
       </View>
-
     </>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
   heading: {
-    alignSelf: 'center',
-    fontSize: 30,
+    alignSelf: "center",
+    fontSize: 22,
+    marginTop: 10,
+  },
+  heading2: {
+    alignSelf: "center",
+    fontSize: 18,
   },
   rtcview: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'black',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "black",
     margin: 5,
   },
   rtc: {
     flex: 1,
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   toggleButtons: {
-    width: '100%',
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+    width: "100%",
+    flexDirection: "row",
+    justifyContent: "space-around",
   },
   callButtons: {
     padding: 10,
-    width: '100%',
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+    width: "100%",
+    flexDirection: "row",
+    justifyContent: "space-around",
   },
   buttonContainer: {
     margin: 5,
-  }
+  },
 });
