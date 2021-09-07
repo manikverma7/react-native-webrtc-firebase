@@ -19,7 +19,11 @@ import { db } from "../utilities/firebase";
 const configuration = {
   iceServers: [
     {
-      urls: ["stun:stun1.l.google.com:19302", "stun:stun2.l.google.com:19302"],
+      urls: [
+        "stun:stun1.l.google.com:19302",
+        "stun:stun2.l.google.com:19302",
+        "stun:stun3.l.google.com:19302",
+      ],
     },
   ],
   iceCandidatePoolSize: 10,
@@ -62,8 +66,8 @@ export default function CallScreen({ setScreen, screens, roomId }) {
       audio: true,
       video: {
         mandatory: {
-          minWidth: 500, 
-          
+          minWidth: 500,
+
           // Provide your own width, height and frame rate here
 
           minHeight: 300,
