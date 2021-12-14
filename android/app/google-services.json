@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "11690874704",
+    "project_id": "deepanshuwebrtcfirebase",
+    "storage_bucket": "deepanshuwebrtcfirebase.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:11690874704:android:a0807cbd220bd297047e55",
+        "android_client_info": {
+          "package_name": "com.webrtc_firebase"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "11690874704-re23sd2fuiostt4a6pe86n47u1ficeku.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDl_46isWRbuslw4F3IwR51pe_9706trf8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "11690874704-re23sd2fuiostt4a6pe86n47u1ficeku.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
